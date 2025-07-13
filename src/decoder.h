@@ -51,4 +51,4 @@ struct LTCDecoder {
 };
 
 
-void decode_ltc(LTCDecoder *d, ltcsnd_sample_t *sound, size_t size, ltc_off_t posinfo);
+DLL_EXPORT void decode_ltc(LTCDecoder *d, ltcsnd_sample_t *sound, size_t size, ltc_off_t posinfo);

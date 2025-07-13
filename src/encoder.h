@@ -44,5 +44,5 @@ struct LTCEncoder {
 	LTCFrame f;
 };
 
-int encode_byte(LTCEncoder *e, int byte, double speed);
-int encode_transition(LTCEncoder *e);
+DLL_EXPORT int encode_byte(LTCEncoder *e, int byte, double speed);
+DLL_EXPORT int encode_transition(LTCEncoder *e);

@@ -1,0 +1,86 @@
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v**'
+
+jobs:
+  build:
+    name: Build Binaries
+    strategy:
+      matrix:
+        include:
+          - os: windows
+            arch: x86_64
+            runner: windows-latest
+          - os: windows
+            arch: arm64
+            runner: windows-11-arm
+          - os: macos
+            arch: x86_64
+            runner: macos-latest
+          - os: macos
+            arch: arm64
+            runner: macos-latest
+          - os: linux
+            arch: x86_64
+            runner: ubuntu-latest
+          - os: linux
+            arch: arm64
+            runner: ubuntu-24.04-arm
+
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        if: matrix.os != 'macos'
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure CMake (MacOS)
+        if: matrix.os == 'macos'
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=${{matrix.arch}}
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config Release
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}_${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            ${{ github.workspace }}/build/**/*.lib
+            ${{ github.workspace }}/build/**/*.dll
+            ${{ github.workspace }}/build/**/*.dylib
+            ${{ github.workspace }}/build/**/*.a
+            ${{ github.workspace }}/build/**/*.so
+
+  collate:
+    name: Collate binaries into single artifact
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Git Tag or SHA
+        uses: tenhaus/get-release-or-tag@v2
+        id: tag
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Upload Packaged SDK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libltc_bin_${{ steps.tag.outputs.tag }}
+          if-no-files-found: error
+          path: ${{ github.workspace }}
+
+      - name: Delete Temp Artifacts
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            windows_*
+            macos_*
+            linux_*
